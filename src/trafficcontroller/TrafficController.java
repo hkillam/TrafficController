@@ -14,7 +14,6 @@ import javafx.stage.Stage;
 import javafx.scene.control.*;
 import javafx.scene.text.*;
 import javafx.geometry.*;
-//javafx.scene.layout.HBox;
 
 import org.nlogo.app.App;
 
@@ -24,18 +23,18 @@ import org.nlogo.app.App;
  */
 public class TrafficController extends Application {
 
-    private static App myApp;
-            
     public static void main(String[] args) {
-        App.main(args);
-        myApp = App.app();
+        App.main(args);  // launch netlogo
         launch(args);
 
-   }
+    }
 
-    
     @Override
-    public void start(Stage primaryStage) {
+    public void start(Stage primaryStage) throws Exception {
+
+        //DataConnection mydb = new DataConnection();
+        //mydb.test();
+        // load our NetLogo application
         try {
             java.awt.EventQueue.invokeAndWait(
                     new Runnable() {
@@ -53,14 +52,16 @@ public class TrafficController extends Application {
             ex.printStackTrace();
         }
 
+        // build the main window
+        // main window - start with a grid
         GridPane root = new GridPane();
         primaryStage.setTitle("Worksite Traffic Controller");
-        root.setHgap(10);
-        root.setVgap(10);
+        root.setHgap(5);
+        root.setVgap(5);
         root.setPadding(new Insets(25, 25, 25, 25));
 
         Button btnSetup = new Button();
-        btnSetup.setMinWidth(20);
+        btnSetup.setPrefWidth(200);
         btnSetup.setText("Setup and Run Netlogo");
         btnSetup.setOnAction(new EventHandler<ActionEvent>() {
 
@@ -69,7 +70,7 @@ public class TrafficController extends Application {
                 //System.out.println("debug info");
                 try {
                     App.app().command("set total-ticks 2000");
-                    //App.app().command("setup");
+                    App.app().command("setup");
                     //App.app().command("repeat 2000 [ go ]");
 
                 } catch (Exception ex) {
@@ -78,49 +79,90 @@ public class TrafficController extends Application {
             }
         });
 
-        root.getChildren().add(btnSetup);
+        //root.add(btnSetup, 1, 1);
+        Label lblResultsFilename = new Label();
+        lblResultsFilename.setText("Building List Results");
+        root.add(lblResultsFilename, 1, 7);
+
+        TextField txtResultsFilename = new TextField();
+        txtResultsFilename.setText("C:\\WorksiteTrafficResults\\results-buildings.csv");
+        txtResultsFilename.setId("txtResultsFile"); // NOI18N
+        txtResultsFilename.setOnAction(new EventHandler<ActionEvent>() {
+            @Override
+            public void handle(ActionEvent event) {
+            }
+        });
+        root.add(txtResultsFilename, 2, 7);
+
+        Label lblWorkerResultsFilename = new Label();
+        lblWorkerResultsFilename.setText("Performance Results");
+        root.add(lblWorkerResultsFilename, 1, 8);
+        TextField txtWorkerResultsFilename = new TextField();
+        txtWorkerResultsFilename.setText("C:\\WorksiteTrafficResults\\results-groupstats.csv");
+        txtWorkerResultsFilename.setId("txtResultsFile"); // NOI18N
+        txtWorkerResultsFilename.setOnAction(new EventHandler<ActionEvent>() {
+            @Override
+            public void handle(ActionEvent event) {
+            }
+        });
+        root.add(txtWorkerResultsFilename, 2, 8);
+
+        TextField txtIterations = new TextField();
+        txtIterations.setText("20");
+        txtIterations.setPrefWidth(50);
+        txtIterations.setId("txtIterations"); // NOI18N
+        txtIterations.setOnAction(new EventHandler<ActionEvent>() {
+            @Override
+            public void handle(ActionEvent event) {
+            }
+        });
+        root.add(txtIterations, 2, 2);
+        Label lblIterations = new Label();
+        lblIterations.setText(" iterations");
+        root.add(lblIterations, 2, 3);
 
         Button btnShuffle = new Button();
         btnShuffle.setText("Randomize and Run");
+        btnShuffle.setPrefWidth(200);
         btnShuffle.setOnAction(new EventHandler<ActionEvent>() {
 
             @Override
             public void handle(ActionEvent event) {
-                try {
-                    App.app().command("set total-ticks 2000");
-                    App.app().command("setup");
-                    App.app().command("make-buildings-dance");
-                    App.app().command("repeat 2000 [ go ]");
-
-                } catch (Exception ex) {
-                    ex.printStackTrace();
+                int iterations = Integer.parseInt(txtIterations.getText());
+                for (int i = 0; i < iterations; i++) {
+                    try {
+                        Long starttime = System.currentTimeMillis();
+                        App.app().command("set total-ticks 2000");
+                        App.app().command("setup");
+                        App.app().command("make-buildings-dance");
+                        App.app().command("repeat 2000 [ go ]");
+                        App.app().command("write-results");
+                        new CSVReader().ReadWorkerStatsFile("C:\\WorksiteTrafficResults\\results-groupstats.csv", "C:\\WorksiteTrafficResults\\results-buildings.csv", starttime);
+                        // note - slow function.  start time 9:30
+                    } catch (Exception ex) {
+                        ex.printStackTrace();
+                    }
                 }
             }
         });
+        root.add(btnShuffle, 1, 2);
 
-HBox hbBtn = new HBox(10);
-//hbBtn.setAlignment(Pos.BOTTOM_RIGHT);
-hbBtn.getChildren().add(btnShuffle);
-root.add(hbBtn, 1, 4);       
+        // put this scene in the new window, and show it
+        primaryStage.setScene(new Scene(root, 300, 250));
+        primaryStage.show();
 
-        
-        MainWindow mainDialog = new MainWindow();
-        mainDialog.setVisible(true);
-        
-        CSVReader  csv = new CSVReader();
-        csv.ReadFile("C:\\WorksiteTrafficResults\\results-groupstats.csv");
-
+        //new CSVReader().ReadWorkerStatsFile("C:\\WorksiteTrafficResults\\results-groupstats.csv", "C:\\WorksiteTrafficResults\\results-buildings.csv", System.currentTimeMillis());
     }
-    
-    public void RunNetlogoStartup() {
-                try {
-                    App.app().command("set total-ticks 2000");
-                    //App.app().command("setup");
-                    //App.app().command("repeat 2000 [ go ]");
 
-                } catch (Exception ex) {
-                    ex.printStackTrace();
-                }        
+    public void RunNetlogoStartup() {
+        try {
+            App.app().command("set total-ticks 2000");
+            //App.app().command("setup");
+            //App.app().command("repeat 2000 [ go ]");
+
+        } catch (Exception ex) {
+            ex.printStackTrace();
+        }
     }
 
 }
