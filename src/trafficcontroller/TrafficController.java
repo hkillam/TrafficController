@@ -37,6 +37,8 @@ public class TrafficController extends Application {
     private TextField txt2ndPopSize = new TextField();
     private TextField txtTickCount = new TextField();
     private TextField txtBuildingsListFile;
+    private Label lblGenerating;
+    private Label lblMutating;
 
     public static void main(String[] args) {
         App.main(args);  // launch netlogo
@@ -122,6 +124,12 @@ public class TrafficController extends Application {
         });
         root.add(btnShuffle, 1, stage1row + 3);
 
+        lblGenerating = new Label("");
+        lblGenerating.setFont(titlefont);
+        lblGenerating.setTextFill(Color.web("#ff0000"));
+        root.add(lblGenerating, 0, stage1row + 3);
+        
+        
 // REPRODUCTION
 
         /* text: size of population */
@@ -168,6 +176,11 @@ public class TrafficController extends Application {
         });
         root.add(btnReproductions, 1, stage2row + 5);
 
+        lblMutating = new Label("");
+        lblMutating.setFont(titlefont);
+        lblMutating.setTextFill(Color.web("#ff0000"));
+        root.add(lblMutating, 0, stage2row + 5);
+        
 // SETTINGS        
 
         /* filename for building list */
@@ -200,6 +213,8 @@ public class TrafficController extends Application {
         // put this scene in the new window, and show it
         primaryStage.setScene(new Scene(root, 400, 600));
         primaryStage.show();
+        
+        new ResultsTable().showResults();
     }
 
     // Create a population of building plans.  Each plan places the buildings in
@@ -210,6 +225,7 @@ public class TrafficController extends Application {
     public void CreateRandomPopulation(TextField txtIterations) {
         // TODO:  show a counter for how many iterations are done.  20 iterations could take more than an hour
         int iterations = Integer.parseInt(txtIterations.getText());
+        lblGenerating.setText("Generating a population");
         long populationID = new DataConnection().insertRow("population", "(population_type_id, parentpopulationid,label)", "1,0,'" + txtPoplabel.getText() + "'");
         for (int i = 0; i < iterations; i++) {
             try {
@@ -219,10 +235,12 @@ public class TrafficController extends Application {
                 App.app().command("repeat " + txtTickCount.getText() + " [ go ]");
                 App.app().command("write-results");
                 new CSVReader().ReadWorkerStatsFile("C:\\WorksiteTrafficResults\\results-groupstats.csv", "C:\\WorksiteTrafficResults\\results-buildings.csv", starttime, populationID);
+                lblGenerating.setText("Processed " + i + " of "+iterations);
             } catch (Exception ex) {
                 ex.printStackTrace();
             }
         }
+        lblGenerating.setText("Population complete");
     }
 
     // Create Reproduction Population
@@ -255,6 +273,7 @@ public class TrafficController extends Application {
     public Population Mutate( int quantity, int cullpercent, int percentmutateby, int percentcrossover) {
         Scrambler shaker = new Scrambler();
         Random rand = new Random();
+        lblMutating.setText("Creating a set of mutants...");
 
         // grab the most recently generated population
         Population original = new Population(Population.populationtypes.generated);
@@ -287,10 +306,12 @@ public class TrafficController extends Application {
         }
 
         // RUN the trials, adn collect all the data.
+        lblMutating.setText("Make the mutants run...");
         int parentPopulation = original.ID;
         int populationtype = 3; // mutated
         String insertvalues = populationtype +"," + parentPopulation + ",'"  + txtPoplabel.getText() + "'";
         long populationID = new DataConnection().insertRow("population", "(population_type_id, parentpopulationid, label)", insertvalues);
+        int numdone = 0;
         for (TrialClass trial : mutated.trials) {
             try {
                 Long starttime = System.currentTimeMillis();
@@ -299,11 +320,14 @@ public class TrafficController extends Application {
                 App.app().command("repeat " + txtTickCount.getText() + " [ go ]");
                 App.app().command("write-results");
                 new CSVReader().ReadWorkerStatsFile("C:\\WorksiteTrafficResults\\results-groupstats.csv", "C:\\WorksiteTrafficResults\\results-buildings.csv", starttime, populationID);
+                numdone++;
+                lblMutating.setText("Trials completed: " + numdone + " of " +trial.size());
+                
             } catch (Exception ex) {
                 ex.printStackTrace();
             }
         }
-        
+        lblMutating.setText("Complete");
         return mutated;
     }
 
