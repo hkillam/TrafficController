@@ -17,6 +17,7 @@ import javafx.geometry.*;
 import java.util.*;
 import javafx.scene.paint.Color;
 import javafx.scene.text.Font;
+import java.util.prefs.*;
 
 import org.nlogo.app.App;
 
@@ -25,18 +26,21 @@ import org.nlogo.app.App;
  * There is something strange in the NetLogo neighbourhood.  When a netlogo object
  * is used from this main class, it works perfectly.  If the object is passed to another 
  * class or a child window, netlogo fails when it is called.  Not spending more time finding out why, continuing with what works.
-*/
-
+ */
 /**
  *
  * @author drago
  */
 public class TrafficController extends Application {
 
-    private TextField txtPoplabel;
+    public TextField txtPoplabel;
     private TextField txt2ndPopSize = new TextField();
     private TextField txtTickCount = new TextField();
+    TextField txtDatabase = new TextField();
+    TextField txtDBUser = new TextField();
+    PasswordField txtPassword = new PasswordField();
     private TextField txtBuildingsListFile;
+    private TextField txtAppName;
     private Label lblGenerating;
     private Label lblMutating;
 
@@ -48,6 +52,8 @@ public class TrafficController extends Application {
 
     @Override
     public void start(Stage primaryStage) throws Exception {
+        Preferences prefs = Preferences.userRoot().node("trafficcontroller");
+        String appname = prefs.get("netlogo_location", "C:\\Users\\drago\\OneDrive\\Documents\\Work\\Omar NetLogo\\worksitetraffic\\WorksiteTraffic.nlogo");
 
         // load our NetLogo application
         try {
@@ -55,8 +61,7 @@ public class TrafficController extends Application {
                     new Runnable() {
                 public void run() {
                     try {
-                        App.app().open(
-                                "C:\\Users\\drago\\OneDrive\\Documents\\Work\\Omar NetLogo\\worksitetraffic\\WorksiteTraffic.nlogo");
+                        App.app().open(appname);
                     } catch (java.io.IOException ex) {
                         ex.printStackTrace();
                     }
@@ -128,8 +133,7 @@ public class TrafficController extends Application {
         lblGenerating.setFont(titlefont);
         lblGenerating.setTextFill(Color.web("#ff0000"));
         root.add(lblGenerating, 0, stage1row + 3);
-        
-        
+
 // REPRODUCTION
 
         /* text: size of population */
@@ -142,7 +146,7 @@ public class TrafficController extends Application {
         TextField txtPrecenttocull = new TextField();
         txtPrecenttocull.setText("20");
         txtPrecenttocull.setPrefWidth(50);
-        root.add(new Label("Percentage to remove"), 0, stage2row + 2);
+        root.add(new Label("Reproduction percentage"), 0, stage2row + 2);
         root.add(txtPrecenttocull, 1, stage2row + 2);
 
         /* text: amount to move mutated buildings by */
@@ -167,11 +171,11 @@ public class TrafficController extends Application {
         btnReproductions.setOnAction(new EventHandler<ActionEvent>() {
             @Override
             public void handle(ActionEvent event) {
-               int popsize = Integer.parseInt(txt2ndPopSize.getText());
-               int percenttocull = Integer.parseInt(txtPrecenttocull.getText());
-               int mutationAmnt = Integer.parseInt(txtMutationAmnt.getText());
-               int crossoverMutantRatio = Integer.parseInt(txtCrossoverMutantRatio.getText());
-               Population newpopulation = Mutate(popsize, percenttocull, mutationAmnt, crossoverMutantRatio);
+                int popsize = Integer.parseInt(txt2ndPopSize.getText());
+                int percenttocull = Integer.parseInt(txtPrecenttocull.getText());
+                int mutationAmnt = Integer.parseInt(txtMutationAmnt.getText());
+                int crossoverMutantRatio = Integer.parseInt(txtCrossoverMutantRatio.getText());
+                Population newpopulation = Mutate(popsize, percenttocull, mutationAmnt, crossoverMutantRatio);
             }
         });
         root.add(btnReproductions, 1, stage2row + 5);
@@ -180,40 +184,108 @@ public class TrafficController extends Application {
         lblMutating.setFont(titlefont);
         lblMutating.setTextFill(Color.web("#ff0000"));
         root.add(lblMutating, 0, stage2row + 5);
-        
+
 // SETTINGS        
 
+        /* filename for application name */
+        txtAppName = new TextField();
+        txtAppName.setText(appname);
+        txtAppName.textProperty().addListener((observable, oldValue, newValue) -> {
+            try {
+                prefs.put("netlogo_location", newValue);
+                prefs.flush();
+            } catch (Exception ex) {
+            }
+        });
+        root.add(new Label("Netlogo Location"), 0, settingsrow + 1);
+        root.add(txtAppName, 1, settingsrow + 1);
+
         /* filename for building list */
+        root.add(new Label("Building List Source"), 0, settingsrow + 2);
         txtBuildingsListFile = new TextField();
-        txtBuildingsListFile.setText("C:\\Users\\drago\\OneDrive\\Documents\\Work\\Omar NetLogo\\worksitetraffic\\buildings.csv");
-        txtBuildingsListFile.setId("txtBuildingsListFile"); // NOI18N
-        root.add(new Label("Building List Source"), 0, settingsrow + 1);
-        root.add(txtBuildingsListFile, 1, settingsrow + 1);
+        String buildinglistsource = prefs.get("netlogo_buildinglistsource", "C:\\Users\\drago\\OneDrive\\Documents\\Work\\Omar NetLogo\\worksitetraffic\\buildings.csv");
+        txtBuildingsListFile.setText(buildinglistsource);
+        txtBuildingsListFile.textProperty().addListener((observable, oldValue, newValue) -> {
+            try {
+                prefs.put("netlogo_buildinglistsource", newValue);
+                prefs.flush();
+            } catch (Exception ex) {
+            }
+        });
+        root.add(txtBuildingsListFile, 1, settingsrow + 2);
 
         /* filename for building results file */
+        root.add(new Label("Building List Results"), 0, settingsrow + 3);
         TextField txtResultsFilename = new TextField();
-        txtResultsFilename.setText("C:\\WorksiteTrafficResults\\results-buildings.csv");
-        txtResultsFilename.setId("txtResultsFilename"); // NOI18N
-        root.add(new Label("Building List Results"), 0, settingsrow + 2);
-        root.add(txtResultsFilename, 1, settingsrow + 2);
+        String buildinglistresults = prefs.get("netlogo_buildinglistresults", "C:\\WorksiteTrafficResults\\results-buildings.csv");
+        txtResultsFilename.setText(buildinglistresults);
+        txtResultsFilename.textProperty().addListener((observable, oldValue, newValue) -> {
+            try {
+                prefs.put("netlogo_buildinglistresults", newValue);
+                prefs.flush();
+            } catch (Exception ex) {
+            }
+        });
+        root.add(txtResultsFilename, 1, settingsrow + 3);
 
-        Label lblWorkerResultsFilename = new Label("Performance Results");
-        root.add(lblWorkerResultsFilename, 0, settingsrow + 3);
-
+        root.add(new Label("Performance Results"), 0, settingsrow + 4);
         TextField txtWorkerResultsFilename = new TextField();
-        txtWorkerResultsFilename.setText("C:\\WorksiteTrafficResults\\results-groupstats.csv");
-        txtWorkerResultsFilename.setId("txtWorkerResultsFilename"); // NOI18N
-        root.add(txtWorkerResultsFilename, 1, settingsrow + 3);
+        String workerresults = prefs.get("netlogo_workerresults", "C:\\WorksiteTrafficResults\\results-groupstats.csv");
+        txtWorkerResultsFilename.setText(workerresults);
+        txtWorkerResultsFilename.textProperty().addListener((observable, oldValue, newValue) -> {
+            try {
+                prefs.put("netlogo_workerresults", newValue);
+                prefs.flush();
+            } catch (Exception ex) {
+            }
+        });
+        root.add(txtWorkerResultsFilename, 1, settingsrow + 4);
 
         txtTickCount.setText("2000");
         txtTickCount.setId("txtTickCount"); // NOI18N
-        root.add(new Label("Ticks per trial"), 0, settingsrow + 4);
-        root.add(txtTickCount, 1, settingsrow + 4);
+        root.add(new Label("Ticks per trial"), 0, settingsrow + 5);
+        root.add(txtTickCount, 1, settingsrow + 5);
+
+        root.add(new Label("Database"), 0, settingsrow + 6);
+        String dbname = prefs.get("netlogo_dbname", "jdbc:mysql://localhost:3306/worksite?autoReconnect=true&useSSL=false");
+        txtDatabase.setText(dbname);
+        txtDatabase.textProperty().addListener((observable, oldValue, newValue) -> {
+            try {
+                prefs.put("netlogo_dbname", newValue);
+                prefs.flush();
+            } catch (Exception ex) {
+            }
+        });
+        root.add(txtDatabase, 1, settingsrow + 6);
+
+        root.add(new Label("Database username"), 0, settingsrow + 7);
+        String dbuser = prefs.get("netlogo_dbuser", "root");
+        txtDBUser.setText(dbuser);
+        txtDBUser.textProperty().addListener((observable, oldValue, newValue) -> {
+            try {
+                prefs.put("netlogo_dbuser", newValue);
+                prefs.flush();
+            } catch (Exception ex) {
+            }
+        });
+        root.add(txtDBUser, 1, settingsrow + 7);
+
+        root.add(new Label("Database password"), 0, settingsrow + 8);
+        String dbpassword = prefs.get("netlogo_dbpassword", "phdnetlogo");
+        txtPassword.setText(dbpassword);
+        txtPassword.textProperty().addListener((observable, oldValue, newValue) -> {
+            try {
+                prefs.put("netlogo_dbpassword", newValue);
+                prefs.flush();
+            } catch (Exception ex) {
+            }
+        });
+        root.add(txtPassword, 1, settingsrow + 8);
 
         // put this scene in the new window, and show it
         primaryStage.setScene(new Scene(root, 400, 600));
         primaryStage.show();
-        
+
         new ResultsTable().showResults();
     }
 
@@ -235,7 +307,7 @@ public class TrafficController extends Application {
                 App.app().command("repeat " + txtTickCount.getText() + " [ go ]");
                 App.app().command("write-results");
                 new CSVReader().ReadWorkerStatsFile("C:\\WorksiteTrafficResults\\results-groupstats.csv", "C:\\WorksiteTrafficResults\\results-buildings.csv", starttime, populationID);
-                lblGenerating.setText("Processed " + i + " of "+iterations);
+                lblGenerating.setText("Processed " + i + " of " + iterations);
             } catch (Exception ex) {
                 ex.printStackTrace();
             }
@@ -247,7 +319,7 @@ public class TrafficController extends Application {
     // Take the top 80% of the newest 1st gen population, and scramble it.
     // 
     // First version - prior to Sept 13.
- /*   public void CreateReproductionPopulation() {
+    /*   public void CreateReproductionPopulation() {
         //DataConnection conn = new DataConnection();
         Population original = new Population(Population.populationtypes.generated); // most recent population will be loaded.
         Population newset = new Population();
@@ -267,39 +339,115 @@ public class TrafficController extends Application {
             ex.printStackTrace();
         }
     } 
-    */
-
-    // original will be destroyed, pass in something that was already a copy.
-    public Population Mutate( int quantity, int cullpercent, int percentmutateby, int percentcrossover) {
+     */
+    public Population Mutate(int quantity, int cullpercent, int percentmutateby, int percentcrossover) {
         Scrambler shaker = new Scrambler();
         Random rand = new Random();
+        lblGenerating.setText("");
+        lblMutating.setText("Creating a set of mutants...");
+        int nummutants = 0;
+        int numattempts = 0;
+
+        // grab the most recently generated population
+        Population original = new Population(Population.populationtypes.generated);
+
+        // STEP 1:  REPRODUCE
+        Population reproduced = shaker.Reproduce(original, quantity, cullpercent);
+        reproduced.parentID = original.ID;
+        Collections.sort(reproduced.trials);
+
+        while (nummutants < quantity && numattempts < 500) {
+            numattempts++;
+            // copy a random trial from the list
+            TrialClass trialA = reproduced.trials.get(rand.nextInt(reproduced.size())).copy();
+            Population crossed = new Population();
+
+            // choose a technique and mash it
+            if (rand.nextInt() < percentcrossover) {
+                TrialClass trialB = reproduced.trials.get(rand.nextInt(reproduced.size())).copy();
+                crossed = shaker.Crossover(trialA, trialB);
+            } else {
+                // Mutation
+                TrialClass ninja = shaker.Mutate(trialA, percentmutateby);
+                crossed.add(ninja);
+
+            }
+
+            // run the trial(s), push improved ones into the list
+            for (TrialClass ninja : crossed.trials) {
+                if (validTrial(ninja)) {
+                    int numtrips = RunTrial(ninja);
+                    TrialClass slowest = reproduced.get(reproduced.size() - 1);
+                    if (numtrips > slowest.trips) {
+                        reproduced.remove(reproduced.size() - 1);
+                        reproduced.add(ninja);
+                        reproduced.sort();
+                        nummutants++;
+                        lblMutating.setText("Mutants created: " + nummutants + " of " + quantity);
+
+                    }
+                }
+            }
+
+        }
+
+        new DataConnection().SavePopulation(reproduced, txtPoplabel.getText());
+
+        lblMutating.setText("Complete");
+        new ResultsTable().showResults();
+        return reproduced;
+    }
+
+    // Run a given trial, return the completed trips.  
+    // Trial is not added to the database
+    int RunTrial(TrialClass trial) {
+        int tripsComplete = 0;
+        try {
+            Long starttime = System.currentTimeMillis();
+            new CSVReader().CreateBuildingsFile(trial, txtBuildingsListFile.getText());
+            App.app().command("setup");
+            App.app().command("repeat " + txtTickCount.getText() + " [ go ]");
+            App.app().command("write-results");
+            tripsComplete = new CSVReader().GetTripCount("C:\\WorksiteTrafficResults\\results-groupstats.csv", starttime);
+            trial.runtime = (System.currentTimeMillis() - starttime) / 1000;
+        } catch (Exception ex) {
+            ex.printStackTrace();
+        }
+        trial.trips = tripsComplete;
+        return tripsComplete;
+    }
+
+    // original will be destroyed, pass in something that was already a copy.
+    // Create a set of crossovers/mutations, then runs the set.
+    public Population MutateThenRun(int quantity, int cullpercent, int percentmutateby, int percentcrossover) {
+        Scrambler shaker = new Scrambler();
+        Random rand = new Random();
+        lblGenerating.setText("");
         lblMutating.setText("Creating a set of mutants...");
 
         // grab the most recently generated population
         Population original = new Population(Population.populationtypes.generated);
-        
+
         // STEP 1:  REPRODUCE
-        Population reproduced = shaker.Reproduce (original, quantity, cullpercent);
+        Population reproduced = shaker.Reproduce(original, quantity, cullpercent);
         int mutantfails = 0;
 
         // STEP 2: CROSSOVER
         Population mutated;
         int numcrossover = reproduced.size() * percentcrossover / 100;
         mutated = shaker.Crossover(reproduced, numcrossover);
-      
+
         // STEP 3: MUTATION - grab one building, and move by the percentage passed in.
         while (reproduced.size() > 0) {
             TrialClass trialA = reproduced.trials.remove(rand.nextInt(reproduced.size()));
-            TrialClass ninja = shaker.Mutate (trialA, percentmutateby);
+            TrialClass ninja = shaker.Mutate(trialA, percentmutateby);
 
             // test it
             if (validTrial(ninja)) {
-                 mutated.add(ninja);
-                 try {
-                 new CSVReader().CreateBuildingsFile(trialA, txtBuildingsListFile.getText());
-                 } catch (Exception ex) {}
+                mutated.add(ninja);
+                new CSVReader().CreateBuildingsFile(trialA, txtBuildingsListFile.getText());
             } else {
-                    // toss this back into the pond and fish some more
+                // toss this back into the pond and fish some more
                 reproduced.add(trialA);
                 mutantfails++;
             }
@@ -309,7 +457,7 @@ public class TrafficController extends Application {
         lblMutating.setText("Make the mutants run...");
         int parentPopulation = original.ID;
         int populationtype = 3; // mutated
-        String insertvalues = populationtype +"," + parentPopulation + ",'"  + txtPoplabel.getText() + "'";
+        String insertvalues = populationtype + "," + parentPopulation + ",'" + txtPoplabel.getText() + "'";
         long populationID = new DataConnection().insertRow("population", "(population_type_id, parentpopulationid, label)", insertvalues);
         int numdone = 0;
         for (TrialClass trial : mutated.trials) {
@@ -321,19 +469,21 @@ public class TrafficController extends Application {
                 App.app().command("write-results");
                 new CSVReader().ReadWorkerStatsFile("C:\\WorksiteTrafficResults\\results-groupstats.csv", "C:\\WorksiteTrafficResults\\results-buildings.csv", starttime, populationID);
                 numdone++;
-                lblMutating.setText("Trials completed: " + numdone + " of " +trial.size());
-                
+                lblMutating.setText("Trials completed: " + numdone + " of " + trial.size());
+
             } catch (Exception ex) {
                 ex.printStackTrace();
             }
         }
         lblMutating.setText("Complete");
+        new ResultsTable().showResults();
         return mutated;
     }
 
     // unused.
     public void RunNetlogoStartup() {
         try {
+            App.app().command("resest-ticks");
             App.app().command("set total-ticks 2000");
             App.app().command("setup");
             App.app().command("repeat 2000 [ go ]");
@@ -342,25 +492,25 @@ public class TrafficController extends Application {
             ex.printStackTrace();
         }
     }
-    
-    public boolean validTrial(TrialClass trial) {
-            try {
-                App.app().command("setup-world-only");
-                for (BuildingClass unit : trial.buildings) {
-                    Boolean fits = (Boolean) App.app().report("building-fits? " + unit.xcor + " " + unit.ycor + " " + unit.width + " " + unit.height);
-                    if (fits == true) {
-                        int x2 = unit.xcor+unit.width;
-                        int y2 = unit.ycor+unit.height;
-                        App.app().command("sketch-building " + unit.id + " " + unit.xcor + " " + unit.ycor + " " + x2 + " " + y2);
-                    } else {
-                        return false;
-                    }
 
+    public boolean validTrial(TrialClass trial) {
+        try {
+            App.app().command("setup-world-only");
+            for (BuildingClass unit : trial.buildings) {
+                Boolean fits = (Boolean) App.app().report("building-fits? " + unit.xcor + " " + unit.ycor + " " + unit.width + " " + unit.height);
+                if (fits == true) {
+                    int x2 = unit.xcor + unit.width;
+                    int y2 = unit.ycor + unit.height;
+                    App.app().command("sketch-building " + unit.id + " " + unit.xcor + " " + unit.ycor + " " + x2 + " " + y2);
+                } else {
+                    return false;
                 }
-            } catch (Exception ex) {
-                ex.printStackTrace();
+
             }
-            return true;
+        } catch (Exception ex) {
+            ex.printStackTrace();
+        }
+        return true;
     }
 
 }
